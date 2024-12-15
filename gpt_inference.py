@@ -4,6 +4,9 @@ from transformers import GPT2Tokenizer
 import openai
 
 class GPT3Model(object):
+    """
+    A class to interact with OpenAI's GPT-3 model for inference tasks.
+    """
 
     def __init__(self, model_name, api_key, logger=None):
         self.model_name = model_name
@@ -18,7 +21,7 @@ class GPT3Model(object):
         losses = []
         data = input + output
 
-        response = self.gpt(data)
+        response = self.gpt3(data)
         print(response)
         out = response.choices[0]
 
@@ -38,7 +41,7 @@ class GPT3Model(object):
 
         return avg_loss
 
-    def gpt(self, prompt, max_len=0, temp=0, num_log_probs=0, echo=True, n=None):
+    def gpt3(self, prompt, max_len=0, temp=0, num_log_probs=0, echo=True, n=None):
         response = None
         received = False
         while not received:
@@ -62,4 +65,3 @@ class GPT3Model(object):
                 print("API error:", error)
                 time.sleep(1)
         return response
-

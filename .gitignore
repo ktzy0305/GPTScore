@@ -3,4 +3,6 @@
 __pycache__
 analysis/*
 demo.py
-new_gpt_score.py
+gpt_score.py
+new_gpt_inference.py
+generic_gpt_score.py
