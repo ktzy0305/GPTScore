@@ -1,2 +1,4 @@
-
 .DS_Store
+.env
+demo.py
+new_gpt_score.py
