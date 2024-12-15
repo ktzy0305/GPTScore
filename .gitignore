@@ -1,4 +1,6 @@
 .DS_Store
 .env
+__pycache__
+analysis/*
 demo.py
 new_gpt_score.py
