@@ -2,6 +2,8 @@ from gpt_inference import GPT3Model
 
 def gpt3score(input, output, gpt3model=None, api_key=None):
     """
+    These models are supported by the completions API.
+    
     GPT-3 Models
     "text-curie-001", "text-ada-001", "text-babbage-001", "text-davinci-001", "text-davinci-003"
     """

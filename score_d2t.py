@@ -3,7 +3,6 @@ import os
 import time
 import numpy as np
 from utils import *
-from gpt_score import gptscore
 from gpt3_score import gpt3score
 from transformers import GPT2Tokenizer
 import json
@@ -323,101 +322,6 @@ class Scorer:
                         self.data[doc_id]['scores'][f'{metric_name}_harm_f'] = harm_f
                 print(f'Finished calculating gpt3_score, time passed {time.time() - start}s.')
 
-            elif metric_name == "gpt4_score":
-                print(f'Perform the gpt4_score...')
-
-                start = time.time()
-                print('num of examples: ', len(self.data))
-                demo = self.demos[self.eval_asp]
-                asp_df = self.asp_dfs[self.eval_asp]
-                print('demo: ', demo)
-                print('asp_df: ', asp_df)
-                refhyp_templates = ["XXXXX In other words , \nYYYYY",]
-                template = refhyp_templates[0]  # template
-                refhyp_demos, hypref_demos = self.demo_convert(demo, template)
-
-                for samp_id, doc_id in enumerate(self.data):
-                    print('samp_id: ', samp_id)
-                    ref_summs = self.data[doc_id]['ref_summs']
-                    ref_summs = [detokenize(line) for line in ref_summs]
-                    sys_summ = detokenize(self.data[doc_id]['sys_summ'])
-
-                    ref_hypo_scores = []
-                    hypo_ref_scores = []
-
-                    keep_seen_refsumm_score = {}
-                    for k, ref_summ in enumerate(ref_summs):
-                        print()
-                        print('aspect: %s; samp_id: %d; ref_summ_id/total_ref_summ: %d/%d' % (
-                        self.eval_asp, samp_id, k, len(ref_summs)))
-                        # Add a period if missing punctuation at the end of the sentence.
-                        ref_summ = add_dot(ref_summ)
-                        sys_summ = add_dot(sys_summ)
-
-                        if ref_summ in keep_seen_refsumm_score:
-                            # skip the duplicate ref_summ
-                            ref_hypo_score = keep_seen_refsumm_score[ref_summ][0]
-                            hypo_ref_score = keep_seen_refsumm_score[ref_summ][1]
-                            ref_hypo_scores.append(ref_hypo_score)
-                            hypo_ref_scores.append(hypo_ref_score)
-                        else:
-                            ## ref->hypo
-                            # define the prefix text...
-                            if self.args.use_ist and self.args.use_demo:
-                                refhyp_demos_str = "\n\n".join(refhyp_demos)
-                                prefix = asp_df + '\n\n' + refhyp_demos_str + '\n\n'
-                            elif self.args.use_ist and not self.args.use_demo:
-                                prefix = asp_df + '\n'
-                            elif not self.args.use_ist and not self.args.use_demo:
-                                prefix = ''
-                            input1 = template.replace("XXXXX", ref_summ).replace("YYYYY", "")
-                            input1 = prefix + input1
-                            output1 = lower_check(sys_summ)
-                            ref_hypo_score = gptscore(input1, output1, self.args.gpt4model, self.args.api_key)
-                            ref_hypo_scores.append(ref_hypo_score)
-
-                            ## hypo->ref
-                            # define the prefix text...
-                            if self.args.use_ist and self.args.use_demo:
-                                hypref_demos_str = "\n\n".join(hypref_demos)
-                                prefix = asp_df + '\n\n' + hypref_demos_str + '\n\n'
-                            elif self.args.use_ist and not self.args.use_demo:
-                                prefix = asp_df + '\n'
-                            elif not self.args.use_ist and not self.args.use_demo:
-                                prefix = ''
-                            input2 = template.replace("XXXXX", sys_summ).replace("YYYYY", "")
-                            input2 = prefix + input2
-                            output2 = lower_check(ref_summ)
-                            hypo_ref_score = gptscore(input2, output2, self.args.gpt4model, self.args.api_key)
-                            hypo_ref_scores.append(hypo_ref_score)
-
-                            keep_seen_refsumm_score[ref_summ] =[ref_hypo_score,hypo_ref_score]
-                    print('keep_seen_refsumm_score: ',keep_seen_refsumm_score)
-                    print('len(ref_hypo_scores): ', len(ref_hypo_scores))
-                    print('len(hypo_ref_scores): ', len(hypo_ref_scores))
-                    ref_hypo_scores = np.array(ref_hypo_scores)
-                    hypo_ref_scores = np.array(hypo_ref_scores)
-                    ref_hypo = ref_hypo_scores.max()
-                    hypo_ref = hypo_ref_scores.max()
-                    avg_f = (0.5 * (ref_hypo_scores + hypo_ref_scores)).max()
-                    harm_f = (ref_hypo_scores * hypo_ref_scores / (ref_hypo_scores + hypo_ref_scores)).max()
-                    print('ref_hypo: ', ref_hypo)
-                    print('hypo_ref: ', hypo_ref)
-                    print('avg_f: ', avg_f)
-                    print('harm_f: ', harm_f)
-
-                    if self.args.use_ist:
-                        self.data[doc_id]['scores'][f'{metric_name}_{self.eval_asp}_ref_hypo'] = ref_hypo
-                        self.data[doc_id]['scores'][f'{metric_name}_{self.eval_asp}_hypo_ref'] = hypo_ref
-                        self.data[doc_id]['scores'][f'{metric_name}_{self.eval_asp}_avg_f'] = avg_f
-                        self.data[doc_id]['scores'][f'{metric_name}_{self.eval_asp}_harm_f'] = harm_f
-                    else:
-                        self.data[doc_id]['scores'][f'{metric_name}_ref_hypo'] = ref_hypo
-                        self.data[doc_id]['scores'][f'{metric_name}_hypo_ref'] = hypo_ref
-                        self.data[doc_id]['scores'][f'{metric_name}_avg_f'] = avg_f
-                        self.data[doc_id]['scores'][f'{metric_name}_harm_f'] = harm_f
-                print(f'Finished calculating gpt4_score, time passed {time.time() - start}s.')
-
             else:
                 raise NotImplementedError
 
@@ -435,8 +339,6 @@ def main():
                         required=False, help='The evaluated aspect considered.')
     parser.add_argument('--gpt3model', type=str, default='ada',
                         required=False, help='Set which GPT3-based model to use.')
-    parser.add_argument('--gpt4model', type=str, default='gpt-4o-mini',
-                        required=False, help='Set which GPT4-based model to use.')
     parser.add_argument('--api_key', type=str, default='YOUR_OPENAI_API_KEY',
                         required=False, help='The OPENAI API key.')
     parser.add_argument('--use_ist', type=str2bool, default=False,
@@ -448,10 +350,8 @@ def main():
     parser.add_argument('--out_dir_name', type=str, default="XXXX",
                         required=False, help='The output folder name to save the calculated scores.')
 
-    parser.add_argument('--gpt3_score', type=str2bool, default=False,
+    parser.add_argument('--gpt3_score', type=str2bool,  default=False,
                         help='Whether to calculate gpt3_score.')
-    parser.add_argument('--gpt4_score', type=str2bool, default=False,
-                        help="Whether to calculate gpt4_score.")
     parser.add_argument('--opt125m_score', type=str2bool, default=False,
                         help='Whether to calculate facebook/opt-125m.')
     parser.add_argument('--opt350m_score', type=str2bool, default=False,
@@ -490,8 +390,6 @@ def main():
     METRICS = []
     if args.gpt3_score:
         METRICS.append('gpt3_score')
-    if args.gpt4_score:
-        METRICS.append('gpt4_score')
     if args.opt350m_score:
         METRICS.append('opt350m_score')
     if args.opt1_3B_score:
@@ -553,4 +451,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

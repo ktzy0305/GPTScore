@@ -2,7 +2,4 @@
 .env
 __pycache__
 analysis/*
-demo.py
-gpt_score.py
-new_gpt_inference.py
 generic_gpt_score.py
