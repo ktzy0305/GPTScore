@@ -78,9 +78,7 @@ class ChatCompletionGPTModel(object):
         
     def do_inference(self, input, output, max_length=8192):
         data = input + output
-
         response = self.gpt(data, max_len=max_length)
-        print(response)
         chat_completion = response.choices[0]
         loss = sum(tokenlogprob.logprob for tokenlogprob in chat_completion.logprobs.content)
         avg_loss = loss / (len(chat_completion.logprobs.content) - 1)
